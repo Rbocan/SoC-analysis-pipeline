@@ -1,6 +1,5 @@
 from fastapi import APIRouter
 from app.models.schemas import HealthResponse
-from app.settings import settings
 from app.services.cache_service import get_redis
 import structlog
 
@@ -26,6 +25,5 @@ async def health_check():
     return HealthResponse(
         status="ok",
         version="1.0.0",
-        environment=settings.environment,
         services=services,
     )

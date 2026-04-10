@@ -173,19 +173,41 @@ class DataProcessor:
 
     # ── DuckDB ad-hoc SQL ────────────────────────────────────────────────────
 
+    def _validate_product_path(self, product_id: str) -> Path:
+        """Resolve and validate the parquet path for a product_id.
+
+        Guards against path traversal by ensuring the resolved path stays
+        inside parquet_dir. Only alphanumeric characters, hyphens, and
+        underscores are accepted in product_id.
+        """
+        import re
+        if not re.fullmatch(r"[a-zA-Z0-9_-]+", product_id):
+            raise ValueError(f"Invalid product_id: '{product_id}'.")
+        path = (self.parquet_dir / f"{product_id}.parquet").resolve()
+        if not str(path).startswith(str(self.parquet_dir.resolve())):
+            raise ValueError(f"Invalid product_id: '{product_id}'.")
+        return path
+
     def sql_query(self, product_id: str, sql: str) -> dict[str, Any]:
-        """Execute a safe, read-only SQL query via DuckDB over parquet data."""
-        path = self._parquet_path(product_id)
+        """Execute a read-only SELECT query via DuckDB over parquet data.
+
+        Only SELECT statements are accepted. product_id is validated against
+        an allowlist pattern and the resolved path is confined to parquet_dir
+        to prevent path traversal.
+        """
+        path = self._validate_product_path(product_id)
         if not path.exists():
             raise FileNotFoundError(f"No data for product '{product_id}'.")
 
-        # Prevent mutation queries
-        forbidden = ("insert", "update", "delete", "drop", "create", "alter", "truncate")
-        if any(kw in sql.lower() for kw in forbidden):
+        # Allowlist approach: only bare SELECT queries permitted.
+        # Strip leading whitespace and block-style SQL comments before checking.
+        stripped = sql.strip().lstrip("-").strip()
+        if not stripped.upper().startswith("SELECT"):
             raise ValueError("Only SELECT queries are allowed.")
 
         conn = duckdb.connect(":memory:")
-        conn.execute(f"CREATE VIEW measurements AS SELECT * FROM read_parquet('{path}')")
+        # Use a parameterized call to avoid f-string interpolation of the path.
+        conn.execute("CREATE VIEW measurements AS SELECT * FROM read_parquet(?)", [str(path)])
         result = conn.execute(sql).fetchdf()
         return {"data": result.to_dict("records"), "columns": list(result.columns)}
 

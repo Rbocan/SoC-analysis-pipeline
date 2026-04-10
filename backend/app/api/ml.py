@@ -3,12 +3,15 @@ from __future__ import annotations
 
 from typing import Any
 
+import structlog
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
 from app.models.database import User
 from app.services.auth_service import get_current_user
 import app.services.ml_service as ml
+
+logger = structlog.get_logger()
 
 router = APIRouter()
 
@@ -31,7 +34,8 @@ async def train_models(product_id: str, _: User = Depends(get_current_user)) -> 
     except (FileNotFoundError, ValueError) as e:
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error("ml_service_error", endpoint=str(e.__class__.__name__), detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 # ---------------------------------------------------------------------------
@@ -52,7 +56,8 @@ async def predict_failure(
     except (FileNotFoundError, ValueError) as e:
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error("ml_service_error", endpoint=str(e.__class__.__name__), detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.get("/feature-importance/{product_id}")
@@ -66,7 +71,8 @@ async def feature_importance(
     except (FileNotFoundError, ValueError) as e:
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error("ml_service_error", endpoint=str(e.__class__.__name__), detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 # ---------------------------------------------------------------------------
@@ -85,7 +91,8 @@ async def yield_forecast(
     except (FileNotFoundError, ValueError) as e:
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error("ml_service_error", endpoint=str(e.__class__.__name__), detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 # ---------------------------------------------------------------------------
@@ -105,4 +112,5 @@ async def drift_status(
     except (FileNotFoundError, ValueError) as e:
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error("ml_service_error", endpoint=str(e.__class__.__name__), detail=str(e))
+        raise HTTPException(status_code=500, detail="Internal server error")

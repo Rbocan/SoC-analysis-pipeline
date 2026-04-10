@@ -24,12 +24,12 @@ async def login(body: LoginRequest, db: AsyncSession = Depends(get_db)):
 async def register(body: UserCreate, db: AsyncSession = Depends(get_db)):
     exists = await db.execute(select(User).where(User.username == body.username))
     if exists.scalar_one_or_none():
-        raise HTTPException(status_code=409, detail="Username already taken")
+        raise HTTPException(status_code=400, detail="Registration failed")
     user = User(
         username=body.username,
         email=body.email,
         hashed_password=hash_password(body.password),
-        role=body.role,
+        role="viewer",
     )
     db.add(user)
     await db.commit()

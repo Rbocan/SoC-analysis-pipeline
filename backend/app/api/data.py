@@ -5,7 +5,7 @@ from fastapi.responses import FileResponse
 from app.models.schemas import DataQuery, PivotRequest
 from app.services.data_processor import processor
 from app.services.cache_service import cache_get, cache_set, cached_query_key
-from app.services.auth_service import get_current_user
+from app.services.auth_service import get_current_user, require_role
 from app.models.database import User
 
 router = APIRouter()
@@ -114,6 +114,6 @@ async def detect_anomalies(
 async def sql_query(
     product_id: str,
     sql: str,
-    _: User = Depends(get_current_user),
+    _: User = Depends(require_role("admin")),
 ):
     return processor.sql_query(product_id, sql)

@@ -9,7 +9,6 @@ class UserCreate(BaseModel):
     username: str
     email: EmailStr
     password: str
-    role: str = "viewer"
 
 
 class UserOut(BaseModel):
@@ -146,5 +145,4 @@ class AuditLogOut(BaseModel):
 class HealthResponse(BaseModel):
     status: str
     version: str
-    environment: str
     services: dict[str, str]
