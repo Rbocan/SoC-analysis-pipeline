@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SoC Daily Validation Report — {{ product_name }}</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #111; background: #f9fafb; }
+  .page { max-width: 1100px; margin: 0 auto; padding: 32px; background: #fff; }
+  .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 3px solid #2563eb; padding-bottom: 20px; margin-bottom: 28px; }
+  .header h1 { font-size: 26px; font-weight: 700; color: #1e3a8a; }
+  .header .meta { text-align: right; color: #6b7280; font-size: 13px; line-height: 1.8; }
+  .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 32px; }
+  .kpi-card { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px; padding: 18px; text-align: center; }
+  .kpi-card .value { font-size: 28px; font-weight: 800; color: #1d4ed8; }
+  .kpi-card .label { font-size: 12px; color: #64748b; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.05em; }
+  .kpi-card.success .value { color: #16a34a; }
+  .kpi-card.danger .value { color: #dc2626; }
+  .kpi-card.warning .value { color: #d97706; }
+  .section { margin-bottom: 36px; }
+  .section h2 { font-size: 17px; font-weight: 700; color: #1e3a8a; border-left: 4px solid #2563eb; padding-left: 10px; margin-bottom: 16px; }
+  .chart-img { width: 100%; border-radius: 8px; border: 1px solid #e5e7eb; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { background: #1e40af; color: #fff; padding: 10px 12px; text-align: left; font-weight: 600; }
+  td { padding: 9px 12px; border-bottom: 1px solid #f1f5f9; }
+  tr:nth-child(even) td { background: #f8fafc; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; }
+  .badge-pass { background: #dcfce7; color: #16a34a; }
+  .badge-fail { background: #fee2e2; color: #dc2626; }
+  .footer { border-top: 1px solid #e5e7eb; margin-top: 40px; padding-top: 14px; color: #9ca3af; font-size: 12px; text-align: center; }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="header">
+    <div>
+      <h1>SoC Daily Validation Report</h1>
+      <div style="color:#6b7280;font-size:14px;margin-top:4px;">{{ product_name }} ({{ product_id }})</div>
+    </div>
+    <div class="meta">
+      <div><strong>Generated:</strong> {{ generated_at }}</div>
+      <div><strong>Period:</strong> {{ date_from }} → {{ date_to }}</div>
+      <div><strong>Data source:</strong> {{ data_source }}</div>
+    </div>
+  </div>
+
+  <!-- KPI Cards -->
+  <div class="kpi-grid">
+    <div class="kpi-card {% if metrics.pass_rate >= 95 %}success{% elif metrics.pass_rate >= 85 %}warning{% else %}danger{% endif %}">
+      <div class="value">{{ metrics.pass_rate }}%</div>
+      <div class="label">Pass Rate</div>
+    </div>
+    <div class="kpi-card">
+      <div class="value">{{ metrics.total_records | int | format_number }}</div>
+      <div class="label">Total Units Tested</div>
+    </div>
+    {% for name, stats in metric_stats.items() %}
+    {% if loop.index <= 2 %}
+    <div class="kpi-card">
+      <div class="value">{{ stats.mean }}</div>
+      <div class="label">Avg {{ name }}</div>
+    </div>
+    {% endif %}
+    {% endfor %}
+  </div>
+
+  <!-- Voltage Trend Chart -->
+  {% if charts.trend %}
+  <div class="section">
+    <h2>Voltage Trend (Last 30 days)</h2>
+    <img class="chart-img" src="data:image/png;base64,{{ charts.trend }}" alt="Trend Chart" />
+  </div>
+  {% endif %}
+
+  <!-- Pass/Fail Distribution -->
+  {% if charts.pass_fail %}
+  <div class="section">
+    <h2>Pass / Fail Distribution by Test</h2>
+    <img class="chart-img" src="data:image/png;base64,{{ charts.pass_fail }}" alt="Pass/Fail Chart" />
+  </div>
+  {% endif %}
+
+  <!-- Metric Statistics Table -->
+  <div class="section">
+    <h2>Metric Statistics</h2>
+    <table>
+      <thead>
+        <tr><th>Metric</th><th>Mean</th><th>Min</th><th>Max</th><th>Std Dev</th></tr>
+      </thead>
+      <tbody>
+        {% for name, s in metric_stats.items() %}
+        <tr>
+          <td><strong>{{ name }}</strong></td>
+          <td>{{ s.mean }}</td>
+          <td>{{ s.min }}</td>
+          <td>{{ s.max }}</td>
+          <td>{{ s.std }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Top Failing Batches -->
+  {% if failing_batches %}
+  <div class="section">
+    <h2>Top Failing Batches</h2>
+    <table>
+      <thead>
+        <tr><th>Batch ID</th><th>Total</th><th>Failed</th><th>Fail Rate</th><th>Status</th></tr>
+      </thead>
+      <tbody>
+        {% for b in failing_batches %}
+        <tr>
+          <td>{{ b.batch_id }}</td>
+          <td>{{ b.total }}</td>
+          <td>{{ b.failed }}</td>
+          <td>{{ b.fail_rate }}%</td>
+          <td><span class="badge {% if b.fail_rate|float < 5 %}badge-pass{% else %}badge-fail{% endif %}">
+            {% if b.fail_rate|float < 5 %}OK{% else %}REVIEW{% endif %}
+          </span></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+
+  <div class="footer">
+    SoC Manufacturing Validation Dashboard &bull; Auto-generated report &bull; {{ generated_at }}
+  </div>
+</div>
+</body>
+</html>
