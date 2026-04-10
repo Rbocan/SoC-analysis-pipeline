@@ -1,0 +1,49 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+.env
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.coverage
+htmlcov/
+*.log
+
+# Node
+node_modules/
+.next/
+out/
+.npm
+*.tsbuildinfo
+
+# Data
+*.parquet
+/data/
+/reports/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Docker
+.dockerignore
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Secrets — .env.example is committed; .env and variants are not
+.env
+.env.local
+.env.production
+.env.*.local
+secrets/
