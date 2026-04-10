@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+.venv/
+venv/
+env/
+*.egg-info/
+dist/
+build/
+
+# Tests & coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Logs
+*.log
+
+# Data — generated at runtime, not baked into the image
+/data/
+/reports/
+
+# Secrets
+.env
+.env.*
+secrets/
+
+# IDE
+.vscode/
+.idea/

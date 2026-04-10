@@ -1,0 +1,21 @@
+# Dependencies — installed inside the image
+node_modules/
+
+# Build output
+.next/
+out/
+
+# TypeScript incremental build info
+*.tsbuildinfo
+
+# npm cache
+.npm
+
+# Secrets
+.env
+.env.*
+secrets/
+
+# IDE
+.vscode/
+.idea/

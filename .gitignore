@@ -36,6 +36,8 @@ out/
 
 # Docker
 .dockerignore
+!backend/.dockerignore
+!frontend/.dockerignore
 
 # OS
 .DS_Store
