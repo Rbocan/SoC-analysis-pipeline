@@ -1,0 +1,126 @@
+products:
+  - id: soc_a8
+    name: "ARM Cortex-A8"
+    description: "High-performance application processor for mobile and embedded systems"
+    data_source: "/data/parquet/soc_a8.parquet"
+    metrics:
+      - name: voltage
+        unit: "V"
+        min_val: 0.9
+        max_val: 1.2
+        nominal: 1.05
+        distribution: normal
+      - name: frequency
+        unit: "MHz"
+        min_val: 600
+        max_val: 1000
+        nominal: 800
+        distribution: uniform
+      - name: temperature
+        unit: "°C"
+        min_val: -10
+        max_val: 85
+        nominal: 45
+        distribution: normal
+      - name: power
+        unit: "mW"
+        min_val: 50
+        max_val: 500
+        nominal: 200
+        distribution: normal
+      - name: leakage_current
+        unit: "μA"
+        min_val: 1
+        max_val: 100
+        nominal: 20
+        distribution: normal
+    tests:
+      - boot_test
+      - stress_test
+      - thermal_validation
+      - power_characterization
+      - frequency_sweep
+
+  - id: soc_m4
+    name: "ARM Cortex-M4"
+    description: "Ultra-low-power microcontroller for IoT and wearables"
+    data_source: "/data/parquet/soc_m4.parquet"
+    metrics:
+      - name: voltage
+        unit: "V"
+        min_val: 1.7
+        max_val: 3.6
+        nominal: 3.3
+        distribution: normal
+      - name: frequency
+        unit: "MHz"
+        min_val: 8
+        max_val: 168
+        nominal: 120
+        distribution: uniform
+      - name: temperature
+        unit: "°C"
+        min_val: -40
+        max_val: 85
+        nominal: 25
+        distribution: normal
+      - name: power
+        unit: "μW"
+        min_val: 10
+        max_val: 100
+        nominal: 40
+        distribution: normal
+      - name: sleep_current
+        unit: "μA"
+        min_val: 0.1
+        max_val: 5
+        nominal: 1.0
+        distribution: normal
+    tests:
+      - boot_test
+      - low_power_test
+      - thermal_validation
+      - gpio_test
+      - adc_calibration
+
+  - id: soc_x1
+    name: "Custom AI Inference SoC X1"
+    description: "Neural processing unit optimized for edge AI inference"
+    data_source: "/data/parquet/soc_x1.parquet"
+    metrics:
+      - name: voltage
+        unit: "V"
+        min_val: 0.75
+        max_val: 0.95
+        nominal: 0.85
+        distribution: normal
+      - name: frequency
+        unit: "GHz"
+        min_val: 0.5
+        max_val: 2.0
+        nominal: 1.5
+        distribution: normal
+      - name: temperature
+        unit: "°C"
+        min_val: 0
+        max_val: 95
+        nominal: 60
+        distribution: normal
+      - name: power
+        unit: "W"
+        min_val: 1
+        max_val: 15
+        nominal: 8
+        distribution: normal
+      - name: inference_tops
+        unit: "TOPS"
+        min_val: 4
+        max_val: 8
+        nominal: 6
+        distribution: normal
+    tests:
+      - boot_test
+      - npu_benchmark
+      - thermal_throttle_test
+      - memory_bandwidth_test
+      - inference_accuracy_test

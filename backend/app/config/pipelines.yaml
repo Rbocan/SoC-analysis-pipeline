@@ -1,0 +1,63 @@
+data_pipelines:
+  - id: daily_validation
+    name: "Daily Validation Report"
+    schedule: "0 6 * * *"
+    product_id: all
+    transformations:
+      - operation: load
+        params:
+          format: parquet
+      - operation: filter
+        params:
+          status: passed
+      - operation: aggregate
+        params:
+          group_by: [batch_id, test_id]
+          metrics: [voltage, frequency, temperature, power]
+      - operation: export
+        params:
+          format: parquet
+    report:
+      template: daily_validation.html
+      distribution: [email, dashboard]
+
+  - id: weekly_trend
+    name: "Weekly Trend Analysis"
+    schedule: "0 8 * * 1"
+    product_id: all
+    transformations:
+      - operation: load
+        params:
+          format: parquet
+          lookback_days: 7
+      - operation: pivot
+        params:
+          index: date
+          columns: test_id
+          values: pass_rate
+      - operation: export
+        params:
+          format: csv
+    report:
+      template: weekly_trend.html
+      distribution: [email, dashboard]
+
+  - id: monthly_yield
+    name: "Monthly Yield Analysis"
+    schedule: "0 7 1 * *"
+    product_id: all
+    transformations:
+      - operation: load
+        params:
+          format: parquet
+          lookback_days: 30
+      - operation: aggregate
+        params:
+          group_by: [product_id, week]
+          metrics: [yield_rate, pass_rate]
+      - operation: export
+        params:
+          format: csv
+    report:
+      template: monthly_yield.html
+      distribution: [email]
