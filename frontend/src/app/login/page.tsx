@@ -4,12 +4,12 @@ import { useLogin } from "@/hooks/useAuth";
 import { Activity, Eye, EyeOff } from "lucide-react";
 
 export default function LoginPage() {
-  const [username, setUsername] = useState("admin");
-  const [password, setPassword] = useState("admin123");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
   const [showPass, setShowPass] = useState(false);
   const login = useLogin();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();
     login.mutate({ username, password });
   };
@@ -80,9 +80,6 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <p className="text-xs text-slate-400 mt-4 text-center">
-            Default: admin / admin123 — change in production
-          </p>
         </div>
       </div>
     </div>

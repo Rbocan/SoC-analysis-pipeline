@@ -1,4 +1,13 @@
-/** Safe localStorage wrapper — no-ops on the server or in environments where localStorage is unavailable. */
+/**
+ * Safe localStorage wrapper — no-ops on the server or in environments where
+ * localStorage is unavailable.
+ *
+ * Security note: storing the JWT in localStorage means it is readable by any
+ * JavaScript running on the page (XSS risk). This is mitigated by the CSP
+ * headers in next.config.mjs which restrict script sources. A future
+ * improvement (Phase 3) is to move to httpOnly cookies set by the backend,
+ * which removes JS access to the token entirely.
+ */
 
 function isAvailable(): boolean {
   try {
