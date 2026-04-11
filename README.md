@@ -16,7 +16,7 @@ Polars + DuckDB + PostgreSQL + Redis
 
 ### Prerequisites
 - Docker + Docker Compose
-- (Optional) Node 20 + Python 3.12 for local dev without Docker
+- (Optional) Node 22 + Python 3.12 for local dev without Docker
 
 ### 1. Start infrastructure
 
@@ -44,7 +44,7 @@ Open:
 - **API docs**: http://localhost:8000/api/docs
 - **ReDoc**: http://localhost:8000/api/redoc
 
-Default credentials: `admin` / `admin123`
+Default credentials are set during the seed step (`app.seed`).
 
 ---
 
@@ -85,6 +85,7 @@ npm run dev
 │   │   ├── api/                 # Route handlers
 │   │   │   ├── auth.py          # JWT login/register
 │   │   │   ├── data.py          # Query/pivot/export/trend
+│   │   │   ├── ml.py            # Failure prediction/drift/yield forecast
 │   │   │   ├── products.py      # Product CRUD
 │   │   │   ├── reports.py       # Report generation
 │   │   │   ├── synthetic.py     # Synthetic data
@@ -110,6 +111,7 @@ npm run dev
 │   │   ├── templates/
 │   │   │   └── daily_validation.html
 │   │   ├── tests/
+│   │   │   ├── test_auth.py
 │   │   │   ├── test_data_processor.py
 │   │   │   ├── test_synthetic_generator.py
 │   │   │   └── test_config_loader.py
@@ -118,6 +120,7 @@ npm run dev
 │   └── Dockerfile
 │
 ├── frontend/
+│   ├── next.config.mjs          # Next.js config + CSP/security headers
 │   └── src/
 │       ├── app/                 # Next.js App Router pages
 │       │   ├── dashboard/       # KPIs + trend charts
@@ -180,6 +183,11 @@ Then hit `POST /api/products/reload` (admin) or restart the backend. No code cha
 | POST | `/api/synthetic/generate` | Generate synthetic data |
 | POST | `/api/reports/generate` | Generate HTML/PDF report |
 | GET | `/api/reports/history` | Report history |
+| POST | `/api/ml/train/{product_id}` | Train classifier + yield predictor |
+| POST | `/api/ml/predict-failure/{product_id}` | Predict pass/fail |
+| GET | `/api/ml/feature-importance/{product_id}` | Feature importances |
+| GET | `/api/ml/yield-forecast/{product_id}` | Yield forecast |
+| GET | `/api/ml/drift-status/{product_id}` | KS-test drift detection |
 | GET | `/api/health/` | Health check |
 
 ---
