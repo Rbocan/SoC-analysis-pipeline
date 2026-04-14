@@ -23,7 +23,6 @@ async def lifespan(app: FastAPI):
         await conn.run_sync(Base.metadata.create_all)
     load_products_config()
     from app.startup import maybe_seed
-    from app.settings import settings
     await maybe_seed(parquet_dir=settings.parquet_dir)
     start_scheduler()
     yield
