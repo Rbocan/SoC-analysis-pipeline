@@ -7,6 +7,7 @@
 services:
   - type: web
     name: soc-backend
+    region: oregon
     runtime: docker
     dockerfilePath: ./backend/Dockerfile
     dockerContext: ./backend
@@ -31,11 +32,13 @@ services:
 
   - type: redis
     name: soc-redis
+    region: oregon
     plan: free
     maxmemoryPolicy: noeviction
 
 databases:
   - name: soc-db
+    region: oregon
     databaseName: soc_dashboard
     user: soc
     plan: free
