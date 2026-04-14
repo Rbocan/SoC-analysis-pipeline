@@ -32,8 +32,13 @@ variable "github_repo_url" {
   type        = string
 }
 
+# github_token is not consumed by any Terraform resource — azurerm_static_site does not
+# support GitHub integration via the provider. It is declared here for parity with the
+# Bicep template (which does use it). Pass it to the manual GitHub connection step in
+# the README instead. Terraform will emit an "unused variable" warning; this is expected.
 variable "github_token" {
-  description = "GitHub personal access token for Static Web Apps CI/CD"
+  description = "GitHub personal access token for Static Web Apps CI/CD (used in README manual step, not by Terraform)"
   type        = string
   sensitive   = true
+  default     = ""
 }

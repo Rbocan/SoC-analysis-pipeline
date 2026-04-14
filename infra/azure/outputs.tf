@@ -1,6 +1,6 @@
 output "backend_url" {
   description = "Container App backend URL"
-  value       = "https://${azurerm_container_app.backend.ingress[0].fqdn}"
+  value       = "https://${azurerm_container_app.backend.latest_revision_fqdn}"
 }
 
 output "frontend_url" {

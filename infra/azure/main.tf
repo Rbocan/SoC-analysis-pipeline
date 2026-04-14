@@ -87,7 +87,7 @@ resource "azurerm_redis_cache" "main" {
   capacity            = 0
   family              = "C"
   sku_name            = "Basic"
-  enable_non_ssl_port = false
+  non_ssl_port_enabled = false
   minimum_tls_version = "1.2"
 }
 
@@ -109,6 +109,8 @@ resource "azurerm_container_app" "backend" {
     name  = "acr-password"
     value = azurerm_container_registry.main.admin_password
   }
+  # Note: db_password is embedded in this secret value and will be stored in terraform.tfstate
+  # in plaintext. Treat the state file with the same access controls as production secrets.
   secret {
     name  = "database-url"
     value = "postgresql+asyncpg://soc:${var.db_password}@${azurerm_postgresql_flexible_server.main.fqdn}:5432/soc_dashboard?sslmode=require"
