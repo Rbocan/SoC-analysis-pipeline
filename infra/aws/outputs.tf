@@ -18,3 +18,9 @@ output "database_endpoint" {
   value       = aws_db_instance.main.address
   sensitive   = true
 }
+
+output "redis_endpoint" {
+  description = "ElastiCache endpoint (for debugging)"
+  value       = aws_elasticache_cluster.main.cache_nodes[0].address
+  sensitive   = true
+}

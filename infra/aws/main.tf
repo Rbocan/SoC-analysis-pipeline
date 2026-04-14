@@ -122,8 +122,11 @@ resource "aws_ecr_repository" "backend" {
   name                 = "soc-backend"
   image_tag_mutability = "MUTABLE"
 
-  # Stack deletion will fail if the repository contains images.
-  # Empty it manually before running terraform destroy, or set lifecycle.prevent_destroy = true.
+  # Mirrors CloudFormation DeletionPolicy: Retain — prevents accidental destruction
+  # of pushed images. To remove: set prevent_destroy = false, re-apply, then destroy.
+  lifecycle {
+    prevent_destroy = true
+  }
 }
 
 resource "aws_ecr_lifecycle_policy" "backend" {
