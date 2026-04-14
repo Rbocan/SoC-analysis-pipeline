@@ -107,6 +107,11 @@ resource "aws_elasticache_subnet_group" "main" {
   subnet_ids = aws_subnet.private[*].id
 }
 
+# Note: aws_elasticache_cluster does not support transit_encryption_enabled or
+# at_rest_encryption_enabled. For production, replace with aws_elasticache_replication_group
+# which supports both flags and allows zero-downtime failover:
+#   transit_encryption_enabled = true  → uses TLS (rediss:// on port 6380)
+#   at_rest_encryption_enabled = true  → supported on r5/r6g/m6g families (not t3.micro)
 resource "aws_elasticache_cluster" "main" {
   cluster_id           = "soc-dashboard-redis"
   engine               = "redis"
@@ -258,6 +263,7 @@ resource "aws_iam_role" "amplify" {
 resource "aws_amplify_app" "frontend" {
   name                 = "soc-dashboard"
   repository           = var.github_repo_url
+  access_token         = var.github_token
   iam_service_role_arn = aws_iam_role.amplify.arn
 
   build_spec = <<-EOT

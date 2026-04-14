@@ -117,6 +117,9 @@ Resources:
       Description: SoC Dashboard Redis subnet group
       SubnetIds: [!Ref PrivateSubnet1, !Ref PrivateSubnet2]
 
+  # Note: AWS::ElastiCache::CacheCluster does not support TransitEncryptionEnabled.
+  # For production, replace with AWS::ElastiCache::ReplicationGroup which supports
+  # TransitEncryptionEnabled (TLS/rediss://) and AtRestEncryptionEnabled (r5/r6g families).
   RedisCluster:
     Type: AWS::ElastiCache::CacheCluster
     Properties:

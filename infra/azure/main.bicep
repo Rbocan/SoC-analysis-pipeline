@@ -72,7 +72,7 @@ resource containerEnv 'Microsoft.App/managedEnvironments@2023-05-01' = {
 
 // ── PostgreSQL Flexible Server ────────────────────────────────────────────────
 
-resource postgresServer 'Microsoft.DBforPostgreSQL/flexibleServers@2023-03-01-preview' = {
+resource postgresServer 'Microsoft.DBforPostgreSQL/flexibleServers@2022-12-01' = {
   name: postgresServerName
   location: location
   sku: {
@@ -89,13 +89,13 @@ resource postgresServer 'Microsoft.DBforPostgreSQL/flexibleServers@2023-03-01-pr
   }
 }
 
-resource postgresDb 'Microsoft.DBforPostgreSQL/flexibleServers/databases@2023-03-01-preview' = {
+resource postgresDb 'Microsoft.DBforPostgreSQL/flexibleServers/databases@2022-12-01' = {
   parent: postgresServer
   name: 'soc_dashboard'
   properties: { charset: 'UTF8', collation: 'en_US.utf8' }
 }
 
-resource postgresFirewall 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2023-03-01-preview' = {
+resource postgresFirewall 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2022-12-01' = {
   parent: postgresServer
   name: 'allow-azure-services'
   properties: {
@@ -157,7 +157,7 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-01' = {
           // Note: staticWebApp.properties.defaultHostname is populated only after the first
           // GitHub Actions build completes. On the initial deployment this may be empty.
           // Re-run the deployment or update this secret manually after the SWA hostname is confirmed.
-          { name: 'CORS_ORIGINS', value: '[\"https://${staticWebApp.properties.defaultHostname}\"]' }
+          { name: 'CORS_ORIGINS', value: '[\'https://${staticWebApp.properties.defaultHostname}\']' }
         ]
       }]
       scale: { minReplicas: 0, maxReplicas: 2 }

@@ -78,11 +78,20 @@ The Bicep template handles this automatically via `repositoryToken`.
 ### 6. Update CORS after Static Web App deploys
 
 The Container App's `CORS_ORIGINS` is set during `terraform apply`, but the Static Web App's
-`defaultHostname` may not be populated on the first deployment. After the first GitHub Actions
-build completes:
+`defaultHostname` may not be populated on the first deployment. Additionally, `NEXT_PUBLIC_API_URL`
+must be set on the Static Web App manually — the `azurerm_static_site` resource does not support
+app settings via Terraform. After the first GitHub Actions build completes:
 
-1. Note the Static Web App URL from `terraform output frontend_url`
-2. Update the Container App environment variable:
+1. Note the backend URL: `terraform output backend_url`
+2. Note the frontend URL: `terraform output frontend_url`
+3. Set `NEXT_PUBLIC_API_URL` on the Static Web App:
+   ```bash
+   az staticwebapp appsettings set \
+     --name soc-dashboard-frontend \
+     --resource-group soc-dashboard-rg \
+     --setting-names NEXT_PUBLIC_API_URL=https://<container-app-fqdn>
+   ```
+4. Update `CORS_ORIGINS` on the Container App:
    ```bash
    az containerapp update --name soc-backend \
      --resource-group soc-dashboard-rg \

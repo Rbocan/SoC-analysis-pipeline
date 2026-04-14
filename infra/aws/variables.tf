@@ -25,3 +25,9 @@ variable "github_repo_url" {
   description = "GitHub repository URL for Amplify, e.g. https://github.com/yourname/SoC-analysis-pipeline"
   type        = string
 }
+
+variable "github_token" {
+  description = "GitHub personal access token for Amplify CI/CD (needs repo scope)"
+  type        = string
+  sensitive   = true
+}
