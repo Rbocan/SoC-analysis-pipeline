@@ -45,7 +45,9 @@ resource logWorkspace 'Microsoft.OperationalInsights/workspaces@2022-10-01' = {
 
 // ── ACR ───────────────────────────────────────────────────────────────────────
 
-resource acr 'Microsoft.ContainerRegistry/registries@2023-01-01-preview' = {
+// Production hardening: replace admin credentials with a user-assigned managed identity
+// granted the AcrPull role on this registry to eliminate the stored static credential.
+resource acr 'Microsoft.ContainerRegistry/registries@2023-07-01' = {
   name: acrName
   location: location
   sku: { name: 'Basic' }
@@ -152,6 +154,9 @@ resource containerApp 'Microsoft.App/containerApps@2023-05-01' = {
           { name: 'REDIS_URL', secretRef: 'redis-url' }
           { name: 'SECRET_KEY', secretRef: 'secret-key' }
           { name: 'ENVIRONMENT', value: 'production' }
+          // Note: staticWebApp.properties.defaultHostname is populated only after the first
+          // GitHub Actions build completes. On the initial deployment this may be empty.
+          // Re-run the deployment or update this secret manually after the SWA hostname is confirmed.
           { name: 'CORS_ORIGINS', value: '[\"https://${staticWebApp.properties.defaultHostname}\"]' }
         ]
       }]
