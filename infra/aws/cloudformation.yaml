@@ -107,6 +107,7 @@ Resources:
       MultiAZ: false
       PubliclyAccessible: false
       BackupRetentionPeriod: 7
+      StorageEncrypted: true
 
   # ── ElastiCache Redis ─────────────────────────────────────────────────────────
 
@@ -125,11 +126,16 @@ Resources:
       NumCacheNodes: 1
       CacheSubnetGroupName: !Ref RedisSubnetGroup
       VpcSecurityGroupIds: [!Ref RedisSG]
+      SnapshotRetentionLimit: 0  # No snapshots for demo; set >0 for production
 
   # ── ECR Repository ────────────────────────────────────────────────────────────
 
   ECRRepo:
     Type: AWS::ECR::Repository
+    # DeletionPolicy: Retain — stack deletion will fail if the repository contains images.
+    # Empty the repo manually before deleting the stack, or set DeletionPolicy: Retain
+    # and remove the repo manually after stack deletion.
+    DeletionPolicy: Retain
     Properties:
       RepositoryName: soc-backend
       LifecyclePolicy:
@@ -161,6 +167,10 @@ Resources:
         - arn:aws:iam::aws:policy/service-role/AWSAppRunnerServicePolicyForECRAccess
 
   AppRunnerInstanceRole:
+    # Intentionally has no attached policies for this demo.
+    # In production, attach at minimum:
+    #   arn:aws:iam::aws:policy/CloudWatchLogsFullAccess (for structured logging)
+    # Add further policies (Secrets Manager, S3, etc.) as your app requires.
     Type: AWS::IAM::Role
     Properties:
       RoleName: soc-apprunner-instance-role
@@ -184,6 +194,10 @@ Resources:
           ImageRepositoryType: ECR
           ImageConfiguration:
             Port: '8000'
+            # Production hardening: move SECRET_KEY and DATABASE_URL to AWS Secrets Manager
+            # and use RuntimeEnvironmentSecrets instead of RuntimeEnvironmentVariables.
+            # RuntimeEnvironmentVariables are visible in the App Runner console to any
+            # principal with apprunner:DescribeService.
             RuntimeEnvironmentVariables:
               - Name: DATABASE_URL
                 Value: !Sub 'postgresql+asyncpg://soc:${DBPassword}@${Database.Endpoint.Address}:5432/soc_dashboard'
@@ -219,6 +233,9 @@ Resources:
           - Effect: Allow
             Principal: {Service: amplify.amazonaws.com}
             Action: sts:AssumeRole
+      # AdministratorAccess-Amplify is broader than needed for basic hosting — it includes
+      # permissions for Amplify's backend features (Lambda, DynamoDB, API Gateway).
+      # For pure Next.js hosting, this is the narrowest AWS-managed policy available.
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/AdministratorAccess-Amplify
 
