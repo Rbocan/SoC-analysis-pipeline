@@ -1,0 +1,42 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "location": {
+      "value": "eastus"
+    },
+    "dbPassword": {
+      "reference": {
+        "keyVault": {
+          "id": "/subscriptions/<subscription-id>/resourceGroups/soc-dashboard-rg/providers/Microsoft.KeyVault/vaults/<vault-name>"
+        },
+        "secretName": "db-password"
+      }
+    },
+    "secretKey": {
+      "reference": {
+        "keyVault": {
+          "id": "/subscriptions/<subscription-id>/resourceGroups/soc-dashboard-rg/providers/Microsoft.KeyVault/vaults/<vault-name>"
+        },
+        "secretName": "app-secret-key"
+      }
+    },
+    "acrImageName": {
+      "value": "socdashboardacr.azurecr.io/soc-backend:latest"
+    },
+    "githubRepoUrl": {
+      "value": "https://github.com/<yourname>/SoC-analysis-pipeline"
+    },
+    "githubBranch": {
+      "value": "main"
+    },
+    "githubToken": {
+      "reference": {
+        "keyVault": {
+          "id": "/subscriptions/<subscription-id>/resourceGroups/soc-dashboard-rg/providers/Microsoft.KeyVault/vaults/<vault-name>"
+        },
+        "secretName": "github-token"
+      }
+    }
+  }
+}
