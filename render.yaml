@@ -35,6 +35,7 @@ services:
     region: oregon
     plan: free
     maxmemoryPolicy: noeviction
+    ipAllowList: []  # Internal Render network only — no public access
 
 databases:
   - name: soc-db
