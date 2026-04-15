@@ -3,14 +3,11 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import {
-  LayoutDashboard, Table2, PivotTableChart, FileText,
+  LayoutDashboard, Table2, Grid2X2, FileText,
   Cpu, Settings, LogOut, Activity, ChevronRight,
 } from "lucide-react";
 import { useLogout } from "@/hooks/useAuth";
 import { useAuthStore } from "@/store/auth";
-
-// Lucide doesn't export PivotTableChart — use a substitute
-import { Grid2X2 } from "lucide-react";
 
 const nav = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
