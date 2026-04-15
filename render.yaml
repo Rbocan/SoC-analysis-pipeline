@@ -42,3 +42,4 @@ databases:
     databaseName: soc_dashboard
     user: soc
     plan: free
+    ipAllowList: []  # Internal Render network only — no public access
