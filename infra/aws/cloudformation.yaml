@@ -1,0 +1,289 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >
+  SoC Dashboard — AWS deployment using App Runner (backend),
+  Amplify (frontend), RDS PostgreSQL, and ElastiCache Redis.
+  Build and push the backend Docker image to ECR before deploying this stack.
+
+Parameters:
+  DBPassword:
+    Type: String
+    NoEcho: true
+    Description: Master password for RDS PostgreSQL
+  SecretKey:
+    Type: String
+    NoEcho: true
+    Description: "FastAPI JWT secret key (generate with: openssl rand -hex 32)"
+  ECRImageURI:
+    Type: String
+    Description: "ECR image URI, e.g. 123456789.dkr.ecr.us-east-1.amazonaws.com/soc-backend:latest"
+  GitHubRepoURL:
+    Type: String
+    Description: "GitHub repository URL, e.g. https://github.com/yourname/SoC-analysis-pipeline"
+
+Resources:
+
+  # ── Networking ────────────────────────────────────────────────────────────────
+
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
+      Tags: [{Key: Name, Value: soc-dashboard-vpc}]
+
+  PrivateSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.1.0/24
+      AvailabilityZone: !Select [0, !GetAZs '']
+      Tags: [{Key: Name, Value: soc-private-1}]
+
+  PrivateSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.2.0/24
+      AvailabilityZone: !Select [1, !GetAZs '']
+      Tags: [{Key: Name, Value: soc-private-2}]
+
+  # ── Security Groups ───────────────────────────────────────────────────────────
+
+  AppRunnerSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: App Runner VPC egress
+      VpcId: !Ref VPC
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
+
+  RDSSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: RDS — allow PostgreSQL from App Runner
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 5432
+          ToPort: 5432
+          SourceSecurityGroupId: !Ref AppRunnerSG
+
+  RedisSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: ElastiCache — allow Redis from App Runner
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 6379
+          ToPort: 6379
+          SourceSecurityGroupId: !Ref AppRunnerSG
+
+  # ── RDS PostgreSQL ────────────────────────────────────────────────────────────
+
+  DBSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: SoC Dashboard RDS subnet group
+      SubnetIds: [!Ref PrivateSubnet1, !Ref PrivateSubnet2]
+
+  Database:
+    Type: AWS::RDS::DBInstance
+    DeletionPolicy: Delete
+    Properties:
+      DBInstanceIdentifier: soc-dashboard-db
+      DBInstanceClass: db.t3.micro
+      Engine: postgres
+      EngineVersion: '16.3'
+      MasterUsername: soc
+      MasterUserPassword: !Ref DBPassword
+      DBName: soc_dashboard
+      AllocatedStorage: '20'
+      StorageType: gp2
+      DBSubnetGroupName: !Ref DBSubnetGroup
+      VPCSecurityGroups: [!Ref RDSSG]
+      MultiAZ: false
+      PubliclyAccessible: false
+      BackupRetentionPeriod: 7
+      StorageEncrypted: true
+
+  # ── ElastiCache Redis ─────────────────────────────────────────────────────────
+
+  RedisSubnetGroup:
+    Type: AWS::ElastiCache::SubnetGroup
+    Properties:
+      Description: SoC Dashboard Redis subnet group
+      SubnetIds: [!Ref PrivateSubnet1, !Ref PrivateSubnet2]
+
+  # Note: AWS::ElastiCache::CacheCluster does not support TransitEncryptionEnabled.
+  # For production, replace with AWS::ElastiCache::ReplicationGroup which supports
+  # TransitEncryptionEnabled (TLS/rediss://) and AtRestEncryptionEnabled (r5/r6g families).
+  RedisCluster:
+    Type: AWS::ElastiCache::CacheCluster
+    Properties:
+      ClusterName: soc-dashboard-redis
+      Engine: redis
+      CacheNodeType: cache.t3.micro
+      NumCacheNodes: 1
+      CacheSubnetGroupName: !Ref RedisSubnetGroup
+      VpcSecurityGroupIds: [!Ref RedisSG]
+      SnapshotRetentionLimit: 0  # No snapshots for demo; set >0 for production
+
+  # ── ECR Repository ────────────────────────────────────────────────────────────
+
+  ECRRepo:
+    Type: AWS::ECR::Repository
+    # DeletionPolicy: Retain — stack deletion will fail if the repository contains images.
+    # Empty the repo manually before deleting the stack, or set DeletionPolicy: Retain
+    # and remove the repo manually after stack deletion.
+    DeletionPolicy: Retain
+    Properties:
+      RepositoryName: soc-backend
+      LifecyclePolicy:
+        LifecyclePolicyText: >
+          {"rules":[{"rulePriority":1,"description":"Keep last 5 images",
+          "selection":{"tagStatus":"any","countType":"imageCountMoreThan","countNumber":5},
+          "action":{"type":"expire"}}]}
+
+  # ── App Runner ────────────────────────────────────────────────────────────────
+
+  AppRunnerVpcConnector:
+    Type: AWS::AppRunner::VpcConnector
+    Properties:
+      VpcConnectorName: soc-vpc-connector
+      Subnets: [!Ref PrivateSubnet1, !Ref PrivateSubnet2]
+      SecurityGroups: [!Ref AppRunnerSG]
+
+  AppRunnerAccessRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: soc-apprunner-access-role
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: {Service: build.apprunner.amazonaws.com}
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSAppRunnerServicePolicyForECRAccess
+
+  AppRunnerInstanceRole:
+    # Intentionally has no attached policies for this demo.
+    # In production, attach at minimum:
+    #   arn:aws:iam::aws:policy/CloudWatchLogsFullAccess (for structured logging)
+    # Add further policies (Secrets Manager, S3, etc.) as your app requires.
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: soc-apprunner-instance-role
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: {Service: tasks.apprunner.amazonaws.com}
+            Action: sts:AssumeRole
+
+  AppRunnerService:
+    Type: AWS::AppRunner::Service
+    Properties:
+      ServiceName: soc-backend
+      SourceConfiguration:
+        AuthenticationConfiguration:
+          AccessRoleArn: !GetAtt AppRunnerAccessRole.Arn
+        AutoDeploymentsEnabled: true
+        ImageRepository:
+          ImageIdentifier: !Ref ECRImageURI
+          ImageRepositoryType: ECR
+          ImageConfiguration:
+            Port: '8000'
+            # Production hardening: move SECRET_KEY and DATABASE_URL to AWS Secrets Manager
+            # and use RuntimeEnvironmentSecrets instead of RuntimeEnvironmentVariables.
+            # RuntimeEnvironmentVariables are visible in the App Runner console to any
+            # principal with apprunner:DescribeService.
+            RuntimeEnvironmentVariables:
+              - Name: DATABASE_URL
+                Value: !Sub 'postgresql+asyncpg://soc:${DBPassword}@${Database.Endpoint.Address}:5432/soc_dashboard'
+              - Name: REDIS_URL
+                Value: !Sub 'redis://${RedisCluster.RedisEndpoint.Address}:6379/0'
+              - Name: SECRET_KEY
+                Value: !Ref SecretKey
+              - Name: ENVIRONMENT
+                Value: production
+              - Name: CORS_ORIGINS
+                Value: !Sub '["https://main.${AmplifyApp.DefaultDomain}"]'
+      InstanceConfiguration:
+        Cpu: 0.25 vCPU
+        Memory: 0.5 GB
+        InstanceRoleArn: !GetAtt AppRunnerInstanceRole.Arn
+      NetworkConfiguration:
+        EgressConfiguration:
+          EgressType: VPC
+          VpcConnectorArn: !Ref AppRunnerVpcConnector
+      HealthCheckConfiguration:
+        Protocol: HTTP
+        Path: /api/health/
+
+  # ── Amplify Frontend ──────────────────────────────────────────────────────────
+
+  AmplifyRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: soc-amplify-role
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: {Service: amplify.amazonaws.com}
+            Action: sts:AssumeRole
+      # AdministratorAccess-Amplify is broader than needed for basic hosting — it includes
+      # permissions for Amplify's backend features (Lambda, DynamoDB, API Gateway).
+      # For pure Next.js hosting, this is the narrowest AWS-managed policy available.
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AdministratorAccess-Amplify
+
+  AmplifyApp:
+    Type: AWS::Amplify::App
+    Properties:
+      Name: soc-dashboard
+      Repository: !Ref GitHubRepoURL
+      IAMServiceRole: !GetAtt AmplifyRole.Arn
+      BuildSpec: |
+        version: 1
+        applications:
+          - appRoot: frontend
+            frontend:
+              phases:
+                preBuild:
+                  commands: [npm ci]
+                build:
+                  commands: [npm run build]
+              artifacts:
+                baseDirectory: .next
+                files: ['**/*']
+              cache:
+                paths: ['node_modules/**/*']
+      EnvironmentVariables:
+        - Name: NEXT_PUBLIC_API_URL
+          Value: !Sub 'https://${AppRunnerService.ServiceUrl}'
+
+  AmplifyBranch:
+    Type: AWS::Amplify::Branch
+    Properties:
+      AppId: !GetAtt AmplifyApp.AppId
+      BranchName: main
+      EnableAutoBuild: true
+
+Outputs:
+  BackendURL:
+    Description: App Runner backend URL
+    Value: !Sub 'https://${AppRunnerService.ServiceUrl}'
+  FrontendURL:
+    Description: Amplify frontend URL
+    Value: !Sub 'https://main.${AmplifyApp.DefaultDomain}'
+  DatabaseEndpoint:
+    Description: RDS endpoint (for debugging)
+    Value: !GetAtt Database.Endpoint.Address
+  RedisEndpoint:
+    Description: ElastiCache endpoint (for debugging)
+    Value: !GetAtt RedisCluster.RedisEndpoint.Address

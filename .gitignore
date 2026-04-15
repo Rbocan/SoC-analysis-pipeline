@@ -49,3 +49,12 @@ Thumbs.db
 .env.production
 .env.*.local
 secrets/
+
+# Terraform — state files contain plaintext secrets; never commit them
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+*.tfvars.json
+override.tf
+override.tf.json
